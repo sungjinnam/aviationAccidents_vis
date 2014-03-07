@@ -1,0 +1,114 @@
+<!-- SI 649 Assignment 2 final | SungJin Nam -->
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+	<title>Assignment2 - final</title>
+</head>
+
+<body>
+
+<div id="container">
+	<div id="title"></div>
+	<div id="chart"></div>
+	<div id="menu"></div>
+</div>
+<script src="d3.min.js" charset="utf-8"></script>
+<script src="queue.v1.min.js" charset="utf-8"></script>
+
+<script>
+var data_single = [];
+var data_double = [];
+var data_more = [];
+
+var columns = ["Event.Id","Investigation.Type","Accident.Number","Event.Date","Location","Country","Latitude","Longitude","Airport.Code","Airport.Name","Injury.Severity","Aircraft.Damage","Aircraft.Category","Registration.Number","Make","Model","Amateur.Built","Number.of.Engines","Engine.Type","FAR.Description","Schedule","Purpose.of.Flight","Air.Carrier","Total.Fatal.Injuries","Total.Serious.Injuries","Total.Minor.Injuries","Total.Uninjured","Weather.Condition","Broad.Phase.of.Flight","Report.Status","Publication.Date","X","year","month","day","Total.Passengers","weekend","holiday"];
+
+// queue()
+// 	.defer(d3.csv, "data/byPassenger.single.csv", function(d){data_single.push(d);})
+// 	.defer(d3.csv, "data/byPassenger.double.csv", function(d){data_double.push(d);})
+// 	.defer(d3.csv, "data/byPassenger.more.csv", function(d){data_more.push(d);})
+queue()
+	.defer(d3.json, "data/test.json")
+	.await(draw);
+
+function draw(error, data1){
+	data_single = data1;
+	var width = 960, height = 1000;
+	var cirX = 450, cirY = 450, cirR = 400;
+	var radial = {
+		factor: 400,
+		vertices: 4,
+		guides: 3,
+		radian: 2*Math.PI
+	}
+
+	var chart = d3.select("#chart")
+		.append("svg")
+		.attr("width", width)
+		.attr("height", height);
+
+	var vis = chart.append("g")
+	var circle = vis.append("circle")
+		.attr("cx", cirX)
+		.attr("cy", cirY)
+		.attr("r", cirR)
+		.attr("stroke", "black")
+		.attr("fill", "white");
+
+	var guideLines = vis.append("g");
+	for(var j=1; j<=radial.guides; j++){
+		for(var i=0; i<radial.vertices; i++){
+			var line = guideLines.append("line")
+				.attr("x1", -Math.sin((i)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
+				.attr("y1", -Math.cos((i)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
+				.attr("x2", -Math.sin((i+1)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
+				.attr("y2", -Math.cos((i+1)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
+				.attr("stroke", "grey")
+				.attr("stroke-dasharray", "5, 10")
+				.attr("stroke-width", "0.1")
+				.attr("transform", "translate(" + cirX + ", " + cirY + ")");
+		}
+	}
+}
+
+// 	.await(ready);
+
+// function ready(){
+// 	var table = d3.select("#container").append("table"),
+// 		thead = table.append("thead"),
+// 		tbody = table.append("tbody");
+
+// 		//filling the header row
+// 	thead.append("tr")
+// 		.selectAll("th")
+// 		.data(columns)
+// 		.enter()
+// 		.append("th")
+// 		.text(function(d) {return d});
+	
+// 	//creating empty rows for tbody
+// 	var rows = tbody.selectAll("tr")
+// 		.data(data_single)
+// 		.enter()
+// 		.append("tr")
+// 		////different background color by continent
+// 		.style('background-color', 'silver');
+
+	
+// 	//filling the cell values for each row
+// 	var cells = rows.selectAll("td")
+// 		.data(function(row){
+// 			////retrieve values for each row by column names
+// 			return columns.map(function(colName){return row[colName]});
+// 		})
+// 		.enter()
+// 		.append("td")
+// 		.text(function(d){return d});
+// }
+
+
+
+</script>
+
+</body>
+
+</html>
