@@ -3,109 +3,404 @@
 <html>
 <head>
 	<title>Assignment2 - final</title>
+	<script src="d3.min.js" charset="utf-8"></script>
+	<script src="queue.v1.min.js" charset="utf-8"></script>
+	<link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
 
 <div id="container">
-	<div id="title"></div>
+	
+		<div id="title">
+			<p>
+			<a href="/">	
+				<h1>Aviation Accidents:</h1>
+				<h2>Injury Rate per Accident for Single Passenger Travels</h2>
+				<br><br>
+			</p>
+			</a>
+		</div>
+	
 	<div id="chart"></div>
-	<div id="menu"></div>
+	<div id="menu">
+		<form onclick="draw()">
+<!-- 			<div class="menuPart">
+				<h3>Passengers</h3>
+				<input type="radio" name="passengers" value="1" > 1 <br>
+				<input type="radio" name="passengers" value="2" checked> 2 <br>
+				<input type="radio" name="passengers" value="more"> More than 2 <br>
+			</div> -->
+
+			<div class="menuPart">
+				<h3>Purpose of Flight</h3>
+				<div id="p1"><input type="checkbox" name="purpose" value="Personal" checked> <hr style="background: #4E4340;"> Personal</div>
+				<div id="p2"><input type="checkbox" name="purpose" value="Business" checked> <hr style="background: #85C85B"> Business</div>
+				<div id="p3"><input type="checkbox" name="purpose" value="Instructional" checked> <hr style="background: #A463B5"> Instructional</div>
+				<div id="p4"><input type="checkbox" name="purpose" value="Positioning" checked> <hr style="background: #C04F4C"> Positioning</div>
+				<div id="p5"><input type="checkbox" name="purpose" value="Aerial Application" checked> <hr style="background: #94B8B7"> Aerial Application</div>
+				<div id="p6"><input type="checkbox" name="purpose" value="Other Work Use" checked> <hr style="background: #BB9749"> Other Work Use</div>
+			</div>
+			<div class="menuPart">
+				<h3>Time Unit</h3>
+				<input type="radio" name="timeUnit" value="day" checked> Day <br>
+				<input type="radio" name="timeUnit" value="month"> Month <br>
+				<input type="radio" name="timeUnit" value="year"> Year <br>
+				<input type="radio" name="timeUnit" value="weekend"> Weekend <br>			
+				<input type="radio" name="timeUnit" value="holiday"> Holiday <br>
+			</div>
+			<div class="menuPart">
+				<h3>Injury Level</h3>
+				<input type="checkbox" name="injury" value="fatal" checked> <hr color="grey"> Fatal Injuries + Serious Injuries<br>
+				<input type="checkbox" name="injury" value="minor"> <hr class="dotted"> Minor Injuries + Uninjured<br>
+			</div>
+		</form>
+		<div class="detailVal"><div class="tooltip"></div></div>
+	</div>
 </div>
-<script src="d3.min.js" charset="utf-8"></script>
-<script src="queue.v1.min.js" charset="utf-8"></script>
 
 <script>
-var data_single = [];
-var data_double = [];
-var data_more = [];
+// var data_single = [];
+// var data_double = [];
+// var data_more = [];
 
-var columns = ["Event.Id","Investigation.Type","Accident.Number","Event.Date","Location","Country","Latitude","Longitude","Airport.Code","Airport.Name","Injury.Severity","Aircraft.Damage","Aircraft.Category","Registration.Number","Make","Model","Amateur.Built","Number.of.Engines","Engine.Type","FAR.Description","Schedule","Purpose.of.Flight","Air.Carrier","Total.Fatal.Injuries","Total.Serious.Injuries","Total.Minor.Injuries","Total.Uninjured","Weather.Condition","Broad.Phase.of.Flight","Report.Status","Publication.Date","X","year","month","day","Total.Passengers","weekend","holiday"];
+var data_fatal = [];
+var data_minor = [];
 
-// queue()
-// 	.defer(d3.csv, "data/byPassenger.single.csv", function(d){data_single.push(d);})
-// 	.defer(d3.csv, "data/byPassenger.double.csv", function(d){data_double.push(d);})
-// 	.defer(d3.csv, "data/byPassenger.more.csv", function(d){data_more.push(d);})
+var chart, vis;
+var width = 960, height = 1000;
+var cirX = 350, cirY = 300, cirR = 250;
+var radial;
+
+var colors = ["#4E4340", "#85C85B", "#A463B5", "#C04F4C", "#94B8B7", "#BB9749"];
+// var colors2 = {Personal: "#4E4340", Business: "#85C85B", Instructional: "#A463B5", Positioning: "#C04F4C", "#94B8B7", "#BB9749"};
+var purposes = ["Personal", "Business", "Instructional", "Positioning", "Aerial Application", "Other Work Use"];
+
+var value_passengers, value_time, value_purpose, value_injury;
+var timeLabels;
+// var timeToolTipText_fatal={};
+// var timeToolTipText_minor={};
+// var timeToolTipText_timeVal;
+// var prev_timeVal;
+var temp_val_fatal
+
 queue()
-	.defer(d3.json, "data/test.json")
-	.await(draw);
+	// .defer(d3.json, "data/single.json")
+	// .defer(d3.json, "data/double.json")
+	// .defer(d3.json, "data/more.json")
+	.defer(d3.json, "data/single_fatal_serious.json")
+	.defer(d3.json, "data/single_minor_uninj.json")
+	.await(ready);
 
-function draw(error, data1){
-	data_single = data1;
-	var width = 960, height = 1000;
-	var cirX = 450, cirY = 450, cirR = 400;
-	var radial = {
-		factor: 400,
-		vertices: 4,
-		guides: 3,
+function ready(error, data1, data2){
+	// data_single = data1;
+	// data_double = data2;
+	// data_more = data3;
+
+	data_fatal = data1;
+	data_minor = data2;
+	
+	menuUpdate();
+	initializing();
+	draw(data_fatal);
+}
+
+function initializing(){
+	//setting up the chart area
+	chart = d3.select("#chart")
+		.append("svg")
+		.attr("width", cirX + cirR * 1.5)
+		.attr("height", cirY + cirR * 1.3);
+
+	//group for whole radial vis area
+	vis = chart.append("g")
+
+	//main circle
+	// var circle = vis.append("circle")
+	// 	.attr("cx", cirX)
+	// 	.attr("cy", cirY)
+	// 	.attr("r", cirR)
+	// 	.attr("stroke", "black")
+	// 	.attr("fill", "white");
+}
+
+function draw(){
+	// update the data selection and redraw the base chart area
+	menuUpdate();
+	chart.remove();
+	initializing();
+
+
+	// var weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+	// var weekend = ["No Weekend", "Sunday", "Saturday"]
+	// var holiday = ["No Holiday", "Christmas", "Thanksgiving"]
+	timeLabels = Object.keys(data_fatal[value_time]['Business'][0]);
+
+	// if(value_time === 'day') timeLabels = weekdays;
+	// else if(value_time === 'weekend') timeLabels = weekend;
+	// else if(value_time === 'holiday') timeLabels = holiday;
+	// else timeLabels = timeLabels.sort();
+	// if(value_time === 'month' || value_time === 'year') timeLabels = timeLabels.sort();
+	
+
+	// info for guidelines
+	radial = {
+		radius: cirR,
+		vertices: timeLabels.length,
+		levels: 3,
 		radian: 2*Math.PI
 	}
 
-	var chart = d3.select("#chart")
-		.append("svg")
-		.attr("width", width)
-		.attr("height", height);
-
-	var vis = chart.append("g")
-	var circle = vis.append("circle")
-		.attr("cx", cirX)
-		.attr("cy", cirY)
-		.attr("r", cirR)
-		.attr("stroke", "black")
-		.attr("fill", "white");
-
-	var guideLines = vis.append("g");
-	for(var j=1; j<=radial.guides; j++){
-		for(var i=0; i<radial.vertices; i++){
-			var line = guideLines.append("line")
-				.attr("x1", -Math.sin((i)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
-				.attr("y1", -Math.cos((i)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
-				.attr("x2", -Math.sin((i+1)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
-				.attr("y2", -Math.cos((i+1)*(radial.radian/radial.vertices)) * ((j * (cirR/radial.guides)) - cirR/(radial.guides*2)))
-				.attr("stroke", "grey")
-				.attr("stroke-dasharray", "5, 10")
-				.attr("stroke-width", "0.1")
-				.attr("transform", "translate(" + cirX + ", " + cirY + ")");
+	// rendering labels for time units
+	var times = vis.append("g");
+	var timeToolTipText_fatal={};
+	// var timeToolTipText_on = false;
+	var timeToolTipText_timeVal;
+	// var timeToolTipText_minor={};
+	for(var i=0; i<timeLabels.length; i++){
+		var temp_perTime_fatal = [];
+		// var temp_perTime_minor = [];
+		for(var j=0; j<value_purpose.length; j++){
+			temp_perTime_fatal.push(data_fatal[value_time][value_purpose[j]][0][timeLabels[i]]);
+			// temp_perTime_minor.push(data_minor[value_time][value_purpose[j]][0][timeLabels[i]]);
+			timeToolTipText_fatal[timeLabels[i]] = temp_perTime_fatal;
+			// timeToolTipText_minor[timeLabels[i]] = temp_perTime_minor;
 		}
 	}
+	var timeTooltip = d3.select(".detailVal .tooltip")
+		.style("position", "absolute")
+		.html(function(){
+			if(timeToolTipText_timeVal === undefined){
+				return ("<div style='text-align:center; float:left;'>" + "<font style='font-weight:bold;'> Fatal + Serious Injuries % </font>"  + "<br>" + "(per each time unit)")
+			}
+		});
+
+	var timePolyHighlight = times.append("polygon")
+		.attr("transform", "translate(" + cirX + ", " + cirY + ")")
+		.attr("stroke", "none")
+		.attr("fill", "grey")
+		.attr("fill-opacity", 0.3)
+
+	var prev_timeVal;
+	var timeLabel = times.selectAll("text")
+		.data(timeLabels)
+		.enter()
+		.append("text")
+		.text(function(d){return(d)})
+		.attr("x", function(d, i){ 
+			return(Math.sin((i)*(radial.radian/radial.vertices)) * (radial.radius*1.18))
+		})
+		.attr("y", function(d, i){
+			return(-Math.cos((i)*(radial.radian/radial.vertices)) * (radial.radius*1.12))
+		})
+		.attr("fill", "black")
+		.attr("text-anchor", "middle")
+		.attr("transform", "translate(" + (cirX) + ", " + cirY + ")")
+		.attr("id", function(d){return  "label_" + d.replace(' ','')})
+		.on("mouseover", function(d, i){
+			timeToolTipText_timeVal = d;
+			if(timeToolTipText_timeVal && timeToolTipText_timeVal != prev_timeVal) {
+				//highlight the moseovered text and call the tooltip for detail information
+				d3.select(this).attr("font-weight", "bold");
+				if(prev_timeVal != undefined){
+					d3.select("#label_" + prev_timeVal.replace(' ', '')).attr("font-weight", "regular");	
+				}
+				timeTooltip.style("visibility", "visible")
+					.html(function(){
+						temp_val_fatal = timeToolTipText_fatal[d].map(function(x, i){return (
+							"<hr style= 'background: " + colors[i] + ";'>  " +
+							value_purpose[i] + ": " + Math.round(x*10000)/100 + "%"
+							);}).join("<br>");
+						// var temp_val_minor = timeToolTipText_minor[d].map(function(x, i){return value_purpose[i] + ": " + Math.round(x*100)/100;}).join("<br>");
+						return ("<div style='text-align:center; float:left;'>" + "<font style='font-weight:bold;'> Fatal + Serious Injuries % </font>"  + "<br>" + 
+							"(" + d + ")" + "<br><br>" +
+							"<div style='text-align:left;'>" + temp_val_fatal + "</div>" +
+							"</div>");
+						})		
+
+				//poly highlight for moseovered text
+				timePolyHighlight.attr("points", function(){
+					function temp_radialLoc(k, z){
+						return [Math.sin((k)*(radial.radian/radial.vertices)) * (radial.radius/z), -Math.cos((k)*(radial.radian/radial.vertices)) * (radial.radius/z)];
+					}
+						var temp_return1 = [0,0];
+						var temp_return2 = [(temp_radialLoc(i-1, 1)[0] + temp_radialLoc(i, 1)[0])/2, (temp_radialLoc(i-1, 1)[1] + temp_radialLoc(i, 1)[1])/2];
+						var temp_return3 = temp_radialLoc(i, 1);
+						var temp_return4 = [(temp_radialLoc(i+1, 1)[0] + temp_radialLoc(i, 1)[0])/2, (temp_radialLoc(i+1, 1)[1] + temp_radialLoc(i, 1)[1])/2];
+						return [temp_return1, temp_return2, temp_return3, temp_return4].join(" ");
+						})
+
+			}
+		})
+		.on("mouseout", function(d){
+			prev_timeVal = d;
+		})
+
+
+	//radial ground & guidelines
+	var guideLines = vis.append("g");
+	for(var j=1; j<=radial.levels+1; j++){
+		for(var i=0; i<radial.vertices; i++){
+			var line = guideLines.append("line")
+				.attr("x1", Math.sin((i)*(radial.radian/radial.vertices)) * (j * (radial.radius/(radial.levels+1))))
+				.attr("y1", -Math.cos((i)*(radial.radian/radial.vertices)) * (j * (radial.radius/(radial.levels+1))))
+				.attr("x2", Math.sin((i+1)*(radial.radian/radial.vertices)) * (j * (radial.radius/(radial.levels+1))))
+				.attr("y2", -Math.cos((i+1)*(radial.radian/radial.vertices)) * (j * (radial.radius/(radial.levels+1))));
+				if (j == radial.levels+1) {
+					line.attr("stroke", "black")
+						.attr("stroke-width", "0.3");					
+				}
+				else {
+					line.attr("stroke", "grey")
+						.attr("stroke-dasharray", "5, 10")
+						.attr("stroke-width", "0.3");
+				}
+			line.attr("transform", "translate(" + cirX + ", " + cirY + ")");
+		}
+		var text = guideLines.append("text")
+			.attr("text-anchor", "middle")
+			.attr("x", 0).attr("y", -(j * (radial.radius/(radial.levels+1))))	
+			.attr("transform", "translate(" + cirX + ", " + cirY + ")")
+			.style("fill", "grey").style("fill-opacity", 0.5).style("font-size", "60%");
+		if (j < radial.levels+1) {
+			text.text((j * (Math.round((1/(radial.levels+1))*10000)/100)) + "%");
+		}
+	}
+
+	// draw polygons for values by each purposes
+	var valueLines = vis.append("g");
+	for(var i = 0; i < checkedBoxes('purpose').length; i++){
+		if(document.getElementsByName('injury')[0].checked) {
+			drawPoly(data_fatal, valueLines, checkedBoxes('timeUnit'), checkedBoxes('purpose')[i], radial, colors[purposes.indexOf(checkedBoxes('purpose')[i])], 0.9, "0");
+		}
+		if(document.getElementsByName('injury')[1].checked) {
+			drawPoly(data_minor, valueLines, checkedBoxes('timeUnit'), checkedBoxes('purpose')[i], radial, colors[purposes.indexOf(checkedBoxes('purpose')[i])], 0.5, "7, 5");
+		}
+	}
+
+	
 }
 
-// 	.await(ready);
+function drawPoly(data, targetG, time, purpose, radial, color, alpha, lineType){
+	var draw_data = data[time][purpose][0];
+	draw_data = Object.keys(draw_data).map(function(key){return(draw_data[key]);});
+	for(var i=0; i<draw_data.length; i++){if(isNaN(draw_data[i])) draw_data[i] = 0;}
+	draw_data = [draw_data];
 
-// function ready(){
-// 	var table = d3.select("#container").append("table"),
-// 		thead = table.append("thead"),
-// 		tbody = table.append("tbody");
+	//tooltip for polygon
+	var return_polyTip = d3.select("#chart")
+		.append("div")
+		.data(draw_data)
+		.attr("class", "toolTip")
+		.style("position", "absolute")
+		.style("z-index", "10")
+		.style("visibility", "hidden")
+		.html(function(d){
+			var temp_numbers = d.map(function(x, i){return timeLabels[i] + ": " + (Math.round(x*10000)/100) + "%";}).join("<br>");
+			return(
+				"<div style='text-align:center;'>" + "<font style='font-weight:bold;'>" + purpose + "</font>" + "<br>" +
+				"(Injury %)" + "<br><br>" +
+				"<br>" + 
+				"<div style='text-align:left;'>" + temp_numbers + "</div>" +
+				"</div>" );
+		});
 
-// 		//filling the header row
-// 	thead.append("tr")
-// 		.selectAll("th")
-// 		.data(columns)
-// 		.enter()
-// 		.append("th")
-// 		.text(function(d) {return d});
-	
-// 	//creating empty rows for tbody
-// 	var rows = tbody.selectAll("tr")
-// 		.data(data_single)
-// 		.enter()
-// 		.append("tr")
-// 		////different background color by continent
-// 		.style('background-color', 'silver');
+	//polygon for data values
+	var return_poly = targetG
+		.data(draw_data)
+		.append("polygon")
+		.attr("points", function(d){
+			return d.map(function(d, i){
+					return [
+						Math.sin((i)*(radial.radian/radial.vertices)) * (radial.radius * d), 
+						-Math.cos((i)*(radial.radian/radial.vertices)) * (radial.radius * d)
+						].join(",");
+				}).join(" ");
+			}
+		)
+		.attr("stroke", color)
+		.attr("stroke-opacity", alpha)
+		.attr("stroke-width", "3.5")
+		.attr("stroke-dasharray", lineType)
+		.attr("fill", "none")
+		.attr("transform", "translate(" + cirX + ", " + cirY + ")")
+		.on("mouseover", function(){
+			// d3.select(this).attr("fill", color).attr("fill-opacity", "0.5").attr("z-index", "-10000");
+			d3.select(this).attr("stroke-width", "7");
+			return return_polyTip.style("visibility", "visible");
+		})
+		.on("mousemove", function(){return return_polyTip.style("top", (event.pageY-150)+"px").style("left", (event.pageX+20)+"px");})
+		.on("mouseout", function(){
+			// d3.select(this).attr("fill", "none");
+			d3.select(this).attr("stroke-width", "3.5");
+			return return_polyTip.style("visibility", "hidden");
+		});
+	return return_poly;
+}
 
-	
-// 	//filling the cell values for each row
-// 	var cells = rows.selectAll("td")
-// 		.data(function(row){
-// 			////retrieve values for each row by column names
-// 			return columns.map(function(colName){return row[colName]});
-// 		})
-// 		.enter()
-// 		.append("td")
-// 		.text(function(d){return d});
+
+function menuUpdate(){
+	// get every DOM of 'input' tag
+	var inputs = document.getElementsByTagName('input');
+	value_purpose = [];	
+	value_injury = [];
+
+	for (var i = 0; i < inputs.length; i++) {
+		//get value from input fields
+		////Passengers radio buttons
+		// if (inputs[i].name === 'passengers' && inputs[i].checked) {value_passengers = inputs[i].value;}
+		////Purpose of Flight checkboxes
+		if(inputs[i].name === 'purpose' && inputs[i].checked) {value_purpose.push(inputs[i].value);}
+		////Time Unit radio buttons
+	    if (inputs[i].name === 'timeUnit' && inputs[i].checked) {value_time = inputs[i].value;}
+	    ////Injury Level checkboxes
+	    if (inputs[i].name === 'injury' && inputs[i].checked) {value_injury.push(inputs[i].value);}
+	}
+	checkedBoxes('purpose');
+	checkedBoxes('injury');
+}
+
+function checkedBoxes(name){
+	var checked = [];
+	var checked_last = [];
+	var inputs = document.getElementsByName(name)
+	for (var i = 0; i < inputs.length; i++){
+		if (inputs[i].checked) checked.push(inputs[i].value);
+	}
+
+	if(checked.length > 0) {
+		checked_last = checked;
+		return(checked);
+	}
+	// else {
+	// 	console.log(checked_last);
+	// 	var temp_idx;
+	// 	for(var i = 0; i < inputs.length; i++){
+	// 		if(inputs[i].value == checked_last[0]) {
+	// 			console.log(i)
+	// 			temp_idx = i;	
+	// 		}
+	// 	}
+	// 	// document.getElementsByName(name)[temp_idx].checked = true;
+	// 	console.log(temp_idx)
+	// 	alert("At least 1 check boxes need to be checked");
+	// }
+}
+
+// function polyUpdate(){
+// 	// menuUpdate();
+// 	// document.getElementsByTagName('input').onclick = function(){
+// 	// 	if(value_passengers==1){draw(data_single);}
+// 	// 	else if(value_passengers==2){draw(data_double);}
+// 	// 	else{draw(data_more);}
+// 	// }
+// 	// if(value_passengers==1){draw(data_single);}
+// 	// else if(value_passengers==2){draw(data_double);}
+// 	// else{draw(data_more);}
+// 	if(value_injury==="fatal") draw(data_fatal);
+// 	else draw(data_minor);
+
 // }
-
-
 
 </script>
 

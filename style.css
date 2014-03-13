@@ -1,0 +1,46 @@
+body{
+	font-family: helvetica, arial;
+}
+
+a{
+	text-decoration: none;
+	color: black;
+}
+
+#title{
+	text-align: center;
+}
+
+#chart{
+	float:left;
+}
+
+hr{
+	width: 20px;
+	height: 5px;
+	display: inline-block;
+	border: none;
+}
+
+/*.menuPart hr::Personal{
+	background: #f00;
+}*/
+
+.menuPart hr.dotted{
+	color: grey;
+	width: 20px;
+	height: 5px;
+	display: inline-block;
+	border-bottom: 5px dotted;
+}
+
+.detailVal{
+	float:left;
+}
+
+.toolTip{
+	padding: 10px;
+	font-size: 80%;
+	background-color: white;
+	border: 1px solid silver;
+}
