@@ -60,9 +60,6 @@
 </div>
 
 <script>
-// var data_single = [];
-// var data_double = [];
-// var data_more = [];
 
 var data_fatal = [];
 var data_minor = [];
@@ -73,30 +70,18 @@ var cirX = 350, cirY = 300, cirR = 250;
 var radial;
 
 var colors = ["#4E4340", "#85C85B", "#A463B5", "#C04F4C", "#94B8B7", "#BB9749"];
-// var colors2 = {Personal: "#4E4340", Business: "#85C85B", Instructional: "#A463B5", Positioning: "#C04F4C", "#94B8B7", "#BB9749"};
 var purposes = ["Personal", "Business", "Instructional", "Positioning", "Aerial Application", "Other Work Use"];
 
 var value_passengers, value_time, value_purpose, value_injury;
 var timeLabels;
-// var timeToolTipText_fatal={};
-// var timeToolTipText_minor={};
-// var timeToolTipText_timeVal;
-// var prev_timeVal;
 var temp_val_fatal
 
 queue()
-	// .defer(d3.json, "data/single.json")
-	// .defer(d3.json, "data/double.json")
-	// .defer(d3.json, "data/more.json")
 	.defer(d3.json, "data/single_fatal_serious.json")
 	.defer(d3.json, "data/single_minor_uninj.json")
 	.await(ready);
 
 function ready(error, data1, data2){
-	// data_single = data1;
-	// data_double = data2;
-	// data_more = data3;
-
 	data_fatal = data1;
 	data_minor = data2;
 	
@@ -115,13 +100,6 @@ function initializing(){
 	//group for whole radial vis area
 	vis = chart.append("g")
 
-	//main circle
-	// var circle = vis.append("circle")
-	// 	.attr("cx", cirX)
-	// 	.attr("cy", cirY)
-	// 	.attr("r", cirR)
-	// 	.attr("stroke", "black")
-	// 	.attr("fill", "white");
 }
 
 function draw(){
@@ -130,18 +108,7 @@ function draw(){
 	chart.remove();
 	initializing();
 
-
-	// var weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-	// var weekend = ["No Weekend", "Sunday", "Saturday"]
-	// var holiday = ["No Holiday", "Christmas", "Thanksgiving"]
 	timeLabels = Object.keys(data_fatal[value_time]['Business'][0]);
-
-	// if(value_time === 'day') timeLabels = weekdays;
-	// else if(value_time === 'weekend') timeLabels = weekend;
-	// else if(value_time === 'holiday') timeLabels = holiday;
-	// else timeLabels = timeLabels.sort();
-	// if(value_time === 'month' || value_time === 'year') timeLabels = timeLabels.sort();
-	
 
 	// info for guidelines
 	radial = {
@@ -154,17 +121,12 @@ function draw(){
 	// rendering labels for time units
 	var times = vis.append("g");
 	var timeToolTipText_fatal={};
-	// var timeToolTipText_on = false;
 	var timeToolTipText_timeVal;
-	// var timeToolTipText_minor={};
 	for(var i=0; i<timeLabels.length; i++){
 		var temp_perTime_fatal = [];
-		// var temp_perTime_minor = [];
 		for(var j=0; j<value_purpose.length; j++){
 			temp_perTime_fatal.push(data_fatal[value_time][value_purpose[j]][0][timeLabels[i]]);
-			// temp_perTime_minor.push(data_minor[value_time][value_purpose[j]][0][timeLabels[i]]);
 			timeToolTipText_fatal[timeLabels[i]] = temp_perTime_fatal;
-			// timeToolTipText_minor[timeLabels[i]] = temp_perTime_minor;
 		}
 	}
 	var timeTooltip = d3.select(".detailVal .tooltip")
@@ -181,6 +143,7 @@ function draw(){
 		.attr("fill", "grey")
 		.attr("fill-opacity", 0.3)
 
+	// labels and tootip box at bottom right (only renders the fatal + serious injuries %)
 	var prev_timeVal;
 	var timeLabel = times.selectAll("text")
 		.data(timeLabels)
@@ -188,10 +151,10 @@ function draw(){
 		.append("text")
 		.text(function(d){return(d)})
 		.attr("x", function(d, i){ 
-			return(Math.sin((i)*(radial.radian/radial.vertices)) * (radial.radius*1.18))
+			return(Math.sin((i)*(radial.radian/radial.vertices)) * (radial.radius*1.16))
 		})
 		.attr("y", function(d, i){
-			return(-Math.cos((i)*(radial.radian/radial.vertices)) * (radial.radius*1.12))
+			return(-Math.cos((i)*(radial.radian/radial.vertices)) * (radial.radius*1.16) + 7)
 		})
 		.attr("fill", "black")
 		.attr("text-anchor", "middle")
@@ -211,7 +174,6 @@ function draw(){
 							"<hr style= 'background: " + colors[i] + ";'>  " +
 							value_purpose[i] + ": " + Math.round(x*10000)/100 + "%"
 							);}).join("<br>");
-						// var temp_val_minor = timeToolTipText_minor[d].map(function(x, i){return value_purpose[i] + ": " + Math.round(x*100)/100;}).join("<br>");
 						return ("<div style='text-align:center; float:left;'>" + "<font style='font-weight:bold;'> Fatal + Serious Injuries % </font>"  + "<br>" + 
 							"(" + d + ")" + "<br><br>" +
 							"<div style='text-align:left;'>" + temp_val_fatal + "</div>" +
@@ -325,13 +287,11 @@ function drawPoly(data, targetG, time, purpose, radial, color, alpha, lineType){
 		.attr("fill", "none")
 		.attr("transform", "translate(" + cirX + ", " + cirY + ")")
 		.on("mouseover", function(){
-			// d3.select(this).attr("fill", color).attr("fill-opacity", "0.5").attr("z-index", "-10000");
 			d3.select(this).attr("stroke-width", "7");
 			return return_polyTip.style("visibility", "visible");
 		})
 		.on("mousemove", function(){return return_polyTip.style("top", (event.pageY-150)+"px").style("left", (event.pageX+20)+"px");})
 		.on("mouseout", function(){
-			// d3.select(this).attr("fill", "none");
 			d3.select(this).attr("stroke-width", "3.5");
 			return return_polyTip.style("visibility", "hidden");
 		});
@@ -372,35 +332,8 @@ function checkedBoxes(name){
 		checked_last = checked;
 		return(checked);
 	}
-	// else {
-	// 	console.log(checked_last);
-	// 	var temp_idx;
-	// 	for(var i = 0; i < inputs.length; i++){
-	// 		if(inputs[i].value == checked_last[0]) {
-	// 			console.log(i)
-	// 			temp_idx = i;	
-	// 		}
-	// 	}
-	// 	// document.getElementsByName(name)[temp_idx].checked = true;
-	// 	console.log(temp_idx)
-	// 	alert("At least 1 check boxes need to be checked");
-	// }
 }
 
-// function polyUpdate(){
-// 	// menuUpdate();
-// 	// document.getElementsByTagName('input').onclick = function(){
-// 	// 	if(value_passengers==1){draw(data_single);}
-// 	// 	else if(value_passengers==2){draw(data_double);}
-// 	// 	else{draw(data_more);}
-// 	// }
-// 	// if(value_passengers==1){draw(data_single);}
-// 	// else if(value_passengers==2){draw(data_double);}
-// 	// else{draw(data_more);}
-// 	if(value_injury==="fatal") draw(data_fatal);
-// 	else draw(data_minor);
-
-// }
 
 </script>
 
